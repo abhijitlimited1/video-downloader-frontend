@@ -27,7 +27,7 @@ function App() {
 
     try {
       const response = await axios.post(
-        "http://localhost:8000/api/validate/", // Ensure this endpoint matches your backend URLs
+        "https://abhijitlimited1.pythonanywhere.com/api/validate/", // Ensure this endpoint matches your backend URLs
         { url },
         {
           headers: {
@@ -62,7 +62,7 @@ function App() {
 
     try {
       const response = await axios.post(
-        "http://localhost:8000/api/download/", // Ensure this endpoint matches your backend URLs
+        "https://abhijitlimited1.pythonanywhere.com/api/download/", // Ensure this endpoint matches your backend URLs
         { url },
         {
           responseType: "blob", // Important for handling binary data
