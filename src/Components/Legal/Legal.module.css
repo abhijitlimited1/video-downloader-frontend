@@ -1,0 +1,36 @@
+.container{
+    padding: 0 80px;
+    margin-top: 60px;
+    display: flex;
+    justify-content:space-between;
+    align-items: self-start;
+    flex-wrap: wrap;
+    flex-direction: column;
+    margin-bottom: 20px;
+}
+
+.header{
+    border-bottom: 1px solid gray;
+    text-align: justify;
+    line-height: 2.5rem;
+}
+
+.text{
+    font-size: 1.5rem;
+    line-height: 2.5rem;
+    padding-top: 40px;
+}
+.option{
+    font-weight: bolder;
+    font-size: 1.8rem;
+    margin-right: 10px;
+}
+
+@media screen and (max-width:730px){
+    .container{
+        padding: 0 20px;
+    }
+    .text{
+        text-align: justify;
+    }
+}

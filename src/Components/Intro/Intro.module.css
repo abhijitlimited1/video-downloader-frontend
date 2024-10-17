@@ -1,0 +1,21 @@
+.container{
+    text-align: center;
+    margin-top: 200px;
+    padding: 0 80px;
+}
+
+.text{
+    font-size: 1.5rem;
+    text-align: justify;
+    line-height: 2.5rem;
+}
+
+.header{
+    border-bottom: 1px solid gray;
+}
+
+@media screen and (max-width:730px) {
+    .container{
+        padding: 0 20px;
+    }
+}
