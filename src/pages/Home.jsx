@@ -47,13 +47,16 @@ export default function Home() {
     setDownloadLink("");
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/download/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ url, quality: "best" }), // Use correct quality format
-      });
+      const response = await fetch(
+        "https://video-downloader-backend-jn92.onrender.com/api/download/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ url, quality: "best" }), // Use correct quality format
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
