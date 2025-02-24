@@ -61,18 +61,18 @@ export default function Home() {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!videoData?.video_url) {
       setError("Download link is missing.");
       return;
     }
 
-    const link = document.createElement("a");
-    link.href = videoData.video_url;
-    link.download = "video.mp4"; // Suggests a filename
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      // Open download link in a new tab
+      window.open(videoData.video_url, "_blank");
+    } catch (err) {
+      setError("Download failed. Try again.");
+    }
   };
 
   return (
