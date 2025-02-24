@@ -12,9 +12,12 @@ export default function Home() {
   const [error, setError] = useState("");
 
   const isValidUrl = (inputUrl) => {
-    const pattern =
-      /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be|tiktok\.com|vimeo\.com)\/.*$/;
-    return pattern.test(inputUrl);
+    try {
+      const url = new URL(inputUrl);
+      return url.hostname.includes("."); // Allows any site with a valid domain
+    } catch {
+      return false;
+    }
   };
 
   const handleFetchVideo = async () => {
