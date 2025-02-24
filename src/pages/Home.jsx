@@ -8,78 +8,65 @@ import Footer from "../components/Footer";
 export default function Home() {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
-  const [downloadLink, setDownloadLink] = useState("");
+  const [videoData, setVideoData] = useState(null);
   const [error, setError] = useState("");
-  const [videoId, setVideoId] = useState("");
 
-  const extractVideoId = (url) => {
-    const match = url.match(
-      /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([^&?/]+)/
-    );
-    return match ? match[1] : "";
+  const isValidUrl = (inputUrl) => {
+    const pattern =
+      /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be|tiktok\.com|vimeo\.com)\/.*$/;
+    return pattern.test(inputUrl);
   };
 
-  const handleFetchVideo = () => {
+  const handleFetchVideo = async () => {
     if (!url.trim()) {
-      setError("Please enter a valid video URL.");
+      setError("Please enter a video URL.");
       return;
     }
 
-    const extractedVideoId = extractVideoId(url);
-    if (!extractedVideoId) {
-      setError("Invalid YouTube URL. Please check again.");
+    if (!isValidUrl(url)) {
+      setError(
+        "Invalid video URL. Supported platforms: YouTube, TikTok, Vimeo."
+      );
       return;
     }
 
-    setVideoId(extractedVideoId);
-    setDownloadLink(""); // Reset download link
     setError("");
-  };
-
-  const handleDownload = async () => {
-    if (!videoId) {
-      setError("No video detected. Please enter a valid URL.");
-      return;
-    }
-
+    setVideoData(null);
     setLoading(true);
-    setError("");
-    setDownloadLink("");
 
     try {
-      const response = await fetch(
-        "https://video-downloader-backend-jn92.onrender.com/api/download/",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ url, quality: "best" }), // Use correct quality format
-        }
-      );
+      const response = await fetch("http://127.0.0.1:8000/api/download/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to download video.");
+        throw new Error(errorData.error || "Failed to fetch video.");
       }
 
-      // Convert response to blob and create a download link
-      const blob = await response.blob();
-      const videoUrl = window.URL.createObjectURL(blob);
-      setDownloadLink(videoUrl);
-
-      // Auto-trigger download
-      const a = document.createElement("a");
-      a.href = videoUrl;
-      a.download = "video.mp4";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      const data = await response.json();
+      setVideoData(data);
     } catch (err) {
-      setError(err.message || "Something went wrong.");
+      setError(err.message || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDownload = () => {
+    if (!videoData?.video_url) {
+      setError("Download link is missing.");
+      return;
+    }
+
+    const link = document.createElement("a");
+    link.href = videoData.video_url;
+    link.download = "video.mp4"; // Suggests a filename
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -106,8 +93,8 @@ export default function Home() {
               <button
                 onClick={() => {
                   setUrl("");
-                  setVideoId("");
-                  setDownloadLink("");
+                  setVideoData(null);
+                  setError("");
                 }}
                 className="absolute right-3 top-3 text-gray-400 hover:text-white"
               >
@@ -118,45 +105,34 @@ export default function Home() {
 
           <button
             onClick={handleFetchVideo}
-            className="w-full mt-4 bg-blue-500 hover:scale-105 text-white font-semibold py-3 rounded-full transition-all"
+            className="w-full mt-4 bg-blue-500 hover:scale-105 text-white font-semibold py-3 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={loading}
           >
             {loading ? "Processing..." : "Fetch Video"}
           </button>
 
-          {videoId && (
-            <div className="mt-4 flex flex-col items-center">
-              <div className="w-full aspect-video max-w-3xl">
-                <iframe
-                  className="w-full h-full rounded-lg"
-                  src={`https://www.youtube.com/embed/${videoId}`}
-                  title="YouTube video player"
-                  frameBorder="0"
-                  allowFullScreen
-                ></iframe>
-              </div>
+          {error && <p className="text-red-400 mt-4">{error}</p>}
+
+          {videoData && (
+            <div className="mt-6">
+              <h3 className="text-lg font-bold">{videoData.title}</h3>
+              {/* Show video preview */}
+              {videoData.video_url && (
+                <video
+                  controls
+                  className="mt-3 rounded-lg w-full"
+                  src={videoData.video_url}
+                />
+              )}
 
               <button
                 onClick={handleDownload}
-                className="w-full max-w-3xl mt-4 bg-green-500 hover:scale-105 text-white font-semibold py-3 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={loading}
+                className="block mt-5 bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-full text-center w-full"
               >
-                {loading ? "Downloading..." : "Download Video"}
+                ⬇ Download Video
               </button>
             </div>
           )}
-
-          {/* {downloadLink && (
-            <a
-              href={downloadLink}
-              download="video.mp4"
-              className="block mt-5 text-green-400 font-semibold underline"
-            >
-              ✅ Click here to download your video!
-            </a>
-          )} */}
-
-          {error && <p className="text-red-400 mt-4">{error}</p>}
         </div>
 
         <FAQ />
