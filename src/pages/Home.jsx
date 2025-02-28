@@ -4,74 +4,77 @@ import Navbar from "../components/Navbar";
 import FAQ from "../components/FAQ";
 import SEOContent from "../components/SEOContent";
 import Footer from "../components/Footer";
+import axios from "axios";
 
 export default function Home() {
   const [url, setUrl] = useState("");
-  const [loading, setLoading] = useState(false);
   const [videoData, setVideoData] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [downloading, setDownloading] = useState(false);
 
-  const isValidUrl = (inputUrl) => {
-    try {
-      const url = new URL(inputUrl);
-      return url.hostname.includes("."); // Allows any site with a valid domain
-    } catch {
-      return false;
-    }
+  const getCSRFToken = () => {
+    const cookieValue =
+      document.cookie.match("(^|;)\\s*csrftoken\\s*=\\s*([^;]+)")?.pop() || "";
+    return cookieValue;
   };
 
   const handleFetchVideo = async () => {
-    if (!url.trim()) {
-      setError("Please enter a video URL.");
-      return;
-    }
-
-    if (!isValidUrl(url)) {
-      setError(
-        "Invalid video URL. Supported platforms: YouTube, TikTok, Vimeo."
-      );
-      return;
-    }
-
+    setLoading(true);
     setError("");
     setVideoData(null);
-    setLoading(true);
 
     try {
       const response = await fetch(
-        "https://video-downloader-backend-jn92.onrender.com/api/download/",
+        "https://video-downloader-backend-jn92.onrender.com/api/fetch-video-info/",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCSRFToken(),
+          },
           body: JSON.stringify({ url }),
         }
       );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch video.");
-      }
-
       const data = await response.json();
-      setVideoData(data);
+
+      if (response.ok && data.video_url) {
+        setVideoData({
+          title: data.title,
+          video_url: data.video_url,
+        });
+      } else {
+        setError(data.error || "Failed to fetch video.");
+      }
     } catch (err) {
-      setError(err.message || "Something went wrong. Please try again.");
+      console.error("Error fetching video:", err);
+      setError("Failed to fetch video.");
     } finally {
       setLoading(false);
     }
   };
 
   const handleDownload = async () => {
-    if (!videoData?.video_url) {
-      setError("Download link is missing.");
-      return;
-    }
+    if (!videoData || !videoData.video_url) return;
 
     try {
-      // Open download link in a new tab
-      window.open(videoData.video_url, "_blank");
+      setDownloading(true);
+
+      // Use the video URL directly to initiate the download
+      const link = document.createElement("a");
+      link.href = videoData.video_url;
+      link.setAttribute("download", `${videoData.title}.mp4`);
+      document.body.appendChild(link);
+      link.click();
+
+      // Cleanup
+      document.body.removeChild(link);
     } catch (err) {
-      setError("Download failed. Try again.");
+      console.error("Error downloading video:", err);
+      setError("Failed to download the video.");
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -92,7 +95,10 @@ export default function Home() {
               type="text"
               placeholder="Paste video URL here..."
               value={url}
-              onChange={(e) => setUrl(e.target.value)}
+              onChange={(e) => {
+                setUrl(e.target.value);
+                setError(""); // Clear error when URL changes
+              }}
               className="w-full p-3 rounded-full bg-gray-800 text-white border border-gray-600 focus:ring-4 focus:ring-blue-500 outline-none placeholder-gray-400"
             />
             {url && (
@@ -119,23 +125,26 @@ export default function Home() {
 
           {error && <p className="text-red-400 mt-4">{error}</p>}
 
-          {videoData && (
+          {videoData && videoData.video_url && (
             <div className="mt-6">
               <h3 className="text-lg font-bold">{videoData.title}</h3>
-              {/* Show video preview */}
-              {videoData.video_url && (
-                <video
+              <div className="mt-6 flex flex-col items-center">
+                <h2 className="text-lg font-semibold mb-2">Preview</h2>
+                {/* <video
                   controls
-                  className="mt-3 rounded-lg w-full"
-                  src={videoData.video_url}
-                />
-              )}
+                  className="w-full max-w-lg rounded-lg shadow-lg border border-gray-700"
+                >
+                  <source src={videoData.video_url} type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video> */}
+              </div>
 
               <button
                 onClick={handleDownload}
                 className="block mt-5 bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-full text-center w-full"
+                disabled={downloading}
               >
-                ⬇ Download Video
+                {downloading ? "Downloading your video..." : "⬇ Download Video"}
               </button>
             </div>
           )}
