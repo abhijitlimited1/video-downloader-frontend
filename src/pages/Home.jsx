@@ -25,56 +25,58 @@ export default function Home() {
     setVideoData(null);
 
     try {
-      const response = await fetch(
+      const response = await axios.post(
         "https://video-downloader-backend-jn92.onrender.com/api/fetch-video-info/",
+        { url },
         {
-          method: "POST",
           headers: {
             "Content-Type": "application/json",
             "X-CSRFToken": getCSRFToken(),
           },
-          body: JSON.stringify({ url }),
         }
       );
 
-      const data = await response.json();
-
-      if (response.ok && data.video_url) {
+      if (response.data.video_url) {
         setVideoData({
-          title: data.title,
-          video_url: data.video_url,
+          title: response.data.title,
+          video_url: response.data.video_url,
         });
       } else {
-        setError(data.error || "Failed to fetch video.");
+        setError("Video format not supported");
       }
     } catch (err) {
-      console.error("Error fetching video:", err);
-      setError("Failed to fetch video.");
+      const errorMessage =
+        err.response?.data?.error ||
+        err.message ||
+        "Failed to fetch video. Check the URL and try again.";
+      setError(errorMessage);
+
+      console.error("Fetch Error Details:", {
+        error: err,
+        response: err.response,
+        url: url,
+      });
     } finally {
       setLoading(false);
     }
   };
-
   const handleDownload = async () => {
-    if (!videoData || !videoData.video_url) return;
-
     try {
-      setDownloading(true);
+      const response = await fetch(
+        `https://video-downloader-backend-jn92.onrender.com/api/stream-video/?url=${encodeURIComponent(
+          videoData.video_url
+        )}&title=${encodeURIComponent(videoData.title)}`
+      );
 
-      // Use the video URL directly to initiate the download
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.href = videoData.video_url;
-      link.setAttribute("download", `${videoData.title}.mp4`);
-      document.body.appendChild(link);
+      link.href = downloadUrl;
+      link.download = `${videoData.title}.mp4`;
       link.click();
-
-      // Cleanup
-      document.body.removeChild(link);
-    } catch (err) {
-      console.error("Error downloading video:", err);
-      setError("Failed to download the video.");
-    } finally {
-      setDownloading(false);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      // Handle errors
     }
   };
 
@@ -97,7 +99,7 @@ export default function Home() {
               value={url}
               onChange={(e) => {
                 setUrl(e.target.value);
-                setError(""); // Clear error when URL changes
+                setError("");
               }}
               className="w-full p-3 rounded-full bg-gray-800 text-white border border-gray-600 focus:ring-4 focus:ring-blue-500 outline-none placeholder-gray-400"
             />
@@ -127,24 +129,13 @@ export default function Home() {
 
           {videoData && videoData.video_url && (
             <div className="mt-6">
-              <h3 className="text-lg font-bold">{videoData.title}</h3>
-              <div className="mt-6 flex flex-col items-center">
-                <h2 className="text-lg font-semibold mb-2">Preview</h2>
-                {/* <video
-                  controls
-                  className="w-full max-w-lg rounded-lg shadow-lg border border-gray-700"
-                >
-                  <source src={videoData.video_url} type="video/mp4" />
-                  Your browser does not support the video tag.
-                </video> */}
-              </div>
-
+              <h3 className="text-lg font-bold truncate">{videoData.title}</h3>
               <button
                 onClick={handleDownload}
                 className="block mt-5 bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-full text-center w-full"
                 disabled={downloading}
               >
-                {downloading ? "Downloading your video..." : "⬇ Download Video"}
+                {downloading ? "Downloading..." : "⬇ Download Video"}
               </button>
             </div>
           )}
